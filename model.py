@@ -29,24 +29,88 @@ test = shuffled.skip(80_000).take(len(ratings) - 80_000)
 unique_movie_titles = movies_df.title.unique()
 unique_user_ids = ratings_df.userId.unique()
 
+
+
 # We're going to build a two towers retrieval model, so we can build each tower separately and combine them later
 
 class UserModel(tf.keras.Model):
-    def __init__(self) :
+
+    def __init__(self):
         super().__init__()
 
-    self.user_embedding = tf.keras.Sequential([
-        tf.keras.layers.experimental.preprocessing.StringLookup(  # convert ids to integers
-        ),
-        tf.keras.layers.Embedding(len(unique_user_ids) + 1, embedding_dimension) # embedding for unknown tokens
-    ])
+        self.user_embedding = tf.keras.Sequential([
+            tf.keras.layers.StringLookup(
+                vocabulary=unique_user_ids, mask_token=None),
+            tf.keras.layers.Embedding(len(unique_user_ids) + 1, embedding_dimension),
+        ])
 
-movie_model = tf.keras.Sequential([ # same as user but for movie
-    tf.keras.layers.experimental.preprocessing.StringLookup(  
-        vocabulary=unique_movie_titles, mask_token=None
-    ),
-    tf.keras.layers.Embedding(len(unique_movie_titles) + 1, embedding_dimension) 
-])
+
+        self.normalized_day = tf.keras.layers.Normalization(
+            axis=None
+        )
+        self.normalized_day.adapt(ratings_df.review_Day)
+        
+        
+        self.normalized_month = tf.keras.layers.Normalization(
+            axis=None
+        )
+        self.normalized_month.adapt(ratings_df.review_Month)
+        
+        
+        self.normalized_year = tf.keras.layers.Normalization(
+            axis=None
+        )
+        self.normalized_year.adapt(ratings_df.review_Year)
+        
+        self.normalized_weekday = tf.keras.layers.Normalization(
+            axis=None
+        )
+        self.normalized_weekday.adapt(ratings_df.review_week_day)
+        
+
+    def call(self, inputs):
+
+        return tf.concat([
+            self.user_embedding(inputs["user_id"]),
+            self.normalized_day(inputs["review_Day"]),
+            self.normalized_month(inputs["review_Month"]),
+            self.normalized_year(inputs["review_Year"]),
+            self.normalized_weekday(inputs["review_week_day"])
+        ], axis=1) 
+
+
+
+class MovieModel(tf.keras.Model):
+
+    def __init__(self):
+        super().__init__()
+
+        max_tokens = 10_000
+
+        self.title_embedding = tf.keras.Sequential([
+        tf.keras.layers.StringLookup(
+            vocabulary=unique_movie_titles, mask_token=None),
+        tf.keras.layers.Embedding(len(unique_movie_titles) + 1, embedding_dimension)
+        ])
+
+        self.title_vectorizer = tf.keras.layers.TextVectorization(
+            max_tokens=max_tokens)
+
+        self.title_text_embedding = tf.keras.Sequential([
+        self.title_vectorizer,
+        tf.keras.layers.Embedding(max_tokens, embedding_dimension, mask_zero=True),
+        tf.keras.layers.GlobalAveragePooling1D(),
+        ])
+
+        self.title_vectorizer.adapt(movies)
+
+    def call(self, titles):
+        return tf.concat([
+            self.title_embedding(titles),
+            self.title_text_embedding(titles),
+        ], axis=1)
+
+
 
 class RankingModel(tf.keras.Model):
 
@@ -85,31 +149,41 @@ class RankingModel(tf.keras.Model):
         return self.ratings(tf.concat([user_embedding, movie_embedding], axis=1))
 
 
-
-
-
 task = tfrs.tasks.Ranking( # this task object both gives us a loss function and metric computation
     loss = tf.keras.losses.MeanSquaredError(),
     metrics=[tf.keras.metrics.RootMeanSquaredError()]
 )
 
-class MovielenModel(tfrs.models.Model):
-    
-    def __init__(self, user_model, movie_model) :
+class MovielensModel(tfrs.models.Model):
+
+    def __init__(self):
         super().__init__()
-        self.user_model = user_model
-        self.movie_model = movie_model
-        self.task = task
-        self.ranking_model = RankingModel()
-        
-    def call(self, features):
-        return self.ranking_model((features["user_id"], features["movie_title"]))
-        
+        self.query_model = tf.keras.Sequential([
+        UserModel(),
+        tf.keras.layers.Dense(32)
+        ])
+        self.candidate_model = tf.keras.Sequential([
+        MovieModel(),
+        tf.keras.layers.Dense(32)
+        ])
+        self.task = tfrs.tasks.Retrieval(
+            metrics=tfrs.metrics.FactorizedTopK(
+                candidates=movies.batch(128).map(self.candidate_model),
+            ),
+        )
+
     def compute_loss(self, features):
-        labels = features.pop("user_rating")
-        rating_predictions = self(features)
-        print(type(self))
-        return self.task(labels=labels, predictions=rating_predictions)
+        query_embeddings = self.query_model({
+            "user_id": features["user_id"],
+            "review_Day": features["review_Day"],
+            "review_Month": features["review_Month"],
+            "review_Year": features["review_Year"],
+            "review_week_day": features["review_week_day"],
+        })
+        
+        movie_embeddings = self.candidate_model(features["movie_title"])
+
+        return self.task(query_embeddings, movie_embeddings)
    
 """
 model = MovielenModel(
