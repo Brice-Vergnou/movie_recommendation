@@ -31,11 +31,15 @@ unique_user_ids = ratings_df.userId.unique()
 
 # We're going to build a two towers retrieval model, so we can build each tower separately and combine them later
 
-user_model = tf.keras.Sequential([
-    tf.keras.layers.experimental.preprocessing.StringLookup(  # convert ids to integers
-    ),
-    tf.keras.layers.Embedding(len(unique_user_ids) + 1, embedding_dimension) # embedding for unknown tokens
-])
+class UserModel(tf.keras.Model):
+    def __init__(self) :
+        super().__init__()
+
+    self.user_embedding = tf.keras.Sequential([
+        tf.keras.layers.experimental.preprocessing.StringLookup(  # convert ids to integers
+        ),
+        tf.keras.layers.Embedding(len(unique_user_ids) + 1, embedding_dimension) # embedding for unknown tokens
+    ])
 
 movie_model = tf.keras.Sequential([ # same as user but for movie
     tf.keras.layers.experimental.preprocessing.StringLookup(  
