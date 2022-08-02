@@ -1,5 +1,4 @@
-from pprint import pprint
-from numpy import positive
+import numpy as np
 import tensorflow as tf
 import pandas as pd
 import os
@@ -11,8 +10,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' #  So tensorflow stops yelling at me fo
 
 movies_df = pd.read_csv("data/movie.csv")
 ratings_df = pd.read_csv("data/ratings.csv")
-movies = tf.data.Dataset.from_tensor_slices(dict(movies_df))
-ratings = tf.data.Dataset.from_tensor_slices(dict(ratings_df))
+data_df = pd.read_csv("data/data.csv")
+data = tf.data.Dataset.from_tensor_slices(dict(data_df))
+movies = data.map(lambda x: x["title"])
+
 
 # for x in data.take(1).as_numpy_iterator():
 #    pprint(x)
@@ -21,14 +22,16 @@ SEED = 42
 embedding_dimension = 64
 
 tf.random.set_seed(SEED)
-shuffled = ratings.shuffle(len(ratings), seed=SEED, reshuffle_each_iteration=False)
+shuffled = data.shuffle(len(data), seed=SEED, reshuffle_each_iteration=False)
 
 train = shuffled.take(80_000)
-test = shuffled.skip(80_000).take(len(ratings) - 80_000)
+test = shuffled.skip(80_000).take(len(data) - 80_000)
 
-unique_movie_titles = movies_df.title.unique()
-unique_user_ids = ratings_df.userId.unique()
+unique_movie_titles = np.unique(np.concatenate(list(movies.batch(1000))))
+unique_user_ids = np.unique(np.concatenate(list(data.batch(1_000).map(
+    lambda x: x["userId"]))))
 
+print(unique_user_ids)
 
 
 # We're going to build a two towers retrieval model, so we can build each tower separately and combine them later
@@ -87,72 +90,26 @@ class MovieModel(tf.keras.Model):
 
         max_tokens = 10_000
 
-        self.title_embedding = tf.keras.Sequential([
-        tf.keras.layers.StringLookup(
-            vocabulary=unique_movie_titles, mask_token=None),
-        tf.keras.layers.Embedding(len(unique_movie_titles) + 1, embedding_dimension)
-        ])
-
         self.title_vectorizer = tf.keras.layers.TextVectorization(
             max_tokens=max_tokens)
-
         self.title_text_embedding = tf.keras.Sequential([
         self.title_vectorizer,
         tf.keras.layers.Embedding(max_tokens, embedding_dimension, mask_zero=True),
         tf.keras.layers.GlobalAveragePooling1D(),
         ])
+        self.title_vectorizer.adapt(unique_movie_titles)
+        
+        self.normalized_year = tf.keras.layers.Normalization(
+            axis=None
+        )
+        self.normalized_year.adapt(movies_df.movie_Year)
 
-        self.title_vectorizer.adapt(movies)
-
-    def call(self, titles):
+    def call(self, inputs):
         return tf.concat([
-            self.title_embedding(titles),
-            self.title_text_embedding(titles),
+            self.title_text_embedding(inputs["movie_title"]),
+            self.normalized_year(inputs["movie_Year"])
         ], axis=1)
 
-
-
-class RankingModel(tf.keras.Model):
-
-    def __init__(self):
-        super().__init__()
-
-        # We're going to build a two towers retrieval model, so we can build each tower separately and combine them later
-        
-        # Compute embeddings for users.
-        self.user_embeddings = tf.keras.Sequential([
-        tf.keras.layers.StringLookup(
-            vocabulary=unique_user_ids, mask_token=None),
-        tf.keras.layers.Embedding(len(unique_user_ids) + 1, embedding_dimension)
-        ])
-
-        # Compute embeddings for movies.
-        self.movie_embeddings = tf.keras.Sequential([
-        tf.keras.layers.StringLookup(
-            vocabulary=unique_movie_titles, mask_token=None),
-        tf.keras.layers.Embedding(len(unique_movie_titles) + 1, embedding_dimension)
-        ])
-
-        # Compute predictions.
-        self.ratings = tf.keras.Sequential([
-        # Learn multiple dense layers.
-        tf.keras.layers.Dense(256, activation="relu"),
-        tf.keras.layers.Dense(64, activation="relu"),
-        # Make rating predictions in the final layer.
-        tf.keras.layers.Dense(1)
-    ])
-    
-    def call(self, inputs):
-        user_id, movie_title = inputs
-        user_embedding = self.user_embeddings(user_id)
-        movie_embedding = self.movie_embeddings(movie_title)
-        return self.ratings(tf.concat([user_embedding, movie_embedding], axis=1))
-
-
-task = tfrs.tasks.Ranking( # this task object both gives us a loss function and metric computation
-    loss = tf.keras.losses.MeanSquaredError(),
-    metrics=[tf.keras.metrics.RootMeanSquaredError()]
-)
 
 class MovielensModel(tfrs.models.Model):
 
@@ -181,28 +138,26 @@ class MovielensModel(tfrs.models.Model):
             "review_week_day": features["review_week_day"],
         })
         
-        movie_embeddings = self.candidate_model(features["movie_title"])
+        movie_embeddings = self.candidate_model({
+            "movie_title" : features["movie_title"],
+            "movie_Year" : features["movie_Year"]
+            })
 
         return self.task(query_embeddings, movie_embeddings)
    
-"""
-model = MovielenModel(
-    user_model=user_model,
-    movie_model=movie_model
-    )
-model.compile(optimizer=tf.keras.optimizers.Adagrad(le=0.1))
 
-cached_train = train.shuffle(100_000).batch(8192).cache()
+model = MovielensModel()
+model.compile(optimizer=tf.keras.optimizers.Adagrad(0.1))
+
+cached_train = train.shuffle(100_000).batch(2048)
 cached_test = test.batch(4096).cache()
 
 model.fit(cached_train, epochs=3)
 
-model.evaluate(cached_test, return_dict=True)
+train_accuracy = model.evaluate(
+    cached_train, return_dict=True)["factorized_top_k/top_100_categorical_accuracy"]
+test_accuracy = model.evaluate(
+    cached_test, return_dict=True)["factorized_top_k/top_100_categorical_accuracy"]
 
-# Create a model that takes in raw query features, and
-index = tfrs.layers.factorized_top_k.BruteForce(model.user_model)
-# recommends movies out of the entire movies dataset.
-index.index_from_dataset(
-  tf.data.Dataset.zip((movies.batch(100), movies.batch(100).map(model.movie_model)))
-)
- """
+print(f"Top-100 accuracy (train): {train_accuracy:.2f}.")
+print(f"Top-100 accuracy (test): {test_accuracy:.2f}.")
