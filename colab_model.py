@@ -37,9 +37,9 @@ svd.fit(trainset)
 def take_second(elem):
     return elem[1]
 
-def return_n_best(user_id, n=5):
+def return_n_best(user_id, colab_data, n=5):
     results = defaultdict(list)
-    for id in tqdm(df_data.movieId):
+    for id in tqdm(colab_data.movieId):
         _, _, _, est, _ = svd.predict(user_id, id)
         results[id] = est
         
@@ -48,19 +48,21 @@ def return_n_best(user_id, n=5):
     
     return final
 
-def get_metadata_recommendations(user_id, n_best=5):
+def get_metadata_recommendations(user_id, colab_data, n_best=5):
     metadata = {}
     for i in range(n_best):
-        predictions = return_n_best(user_id, n_best)[i]
+        predictions = return_n_best(user_id, colab_data, n_best)[i]
         id, _ = predictions
         metadata[id] = {}
 
-        row = df_data[df_data.movieId == id].iloc[0]
+        row = colab_data[colab_data.movieId == id].iloc[0]
         row = dict(row)
 
         title = row["title"]
         year = row["movie_Year"]
         mean_rating = row["mean_rating"]
+        overview = row["overview"]
+        image_path = row["image_path"]
         genres = []
         for genre in ["Adventure","Animation","Children","Comedy","Fantasy","Romance","Drama","Action","Crime","Thriller",
                     "Horror","Mystery","Sci-Fi","IMAX","War","Musical","Documentary","Western","Film-Noir"]:
@@ -72,9 +74,11 @@ def get_metadata_recommendations(user_id, n_best=5):
         metadata[id]["title"] = title
         metadata[id]["mean_rating"] = mean_rating
         metadata[id]["genres"] = genres
+        metadata[id]["overview"] = overview
+        metadata[id]["image_path"] = image_path
     return metadata
 
 if __name__=="__main__":
-    pprint(get_metadata_recommendations(42))
+    pprint(get_metadata_recommendations(0, colab_data=df_data))
     dump("data/model.pkl",algo=svd)
 # %%
