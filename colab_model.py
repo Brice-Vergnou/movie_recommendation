@@ -74,7 +74,7 @@ def get_metadata_recommendations(svd, user_id, colab_data, n_best=5):
                 genres.append(genre)
 
         
-        metadata[id]["year"] = year
+        metadata[id]["movie_Year"] = year
         metadata[id]["title"] = title
         metadata[id]["mean_rating"] = mean_rating
         metadata[id]["genres"] = genres

@@ -32,7 +32,7 @@ def get_recommendations_metadata(movie_id, movie_data, n_best=5):
         image_path = reco["image_path"][id]
 
         
-        metadata[id]["year"] = year
+        metadata[id]["movie_Year"] = year
         metadata[id]["title"] = title
         metadata[id]["mean_rating"] = mean_rating
         metadata[id]["genres"] = genres
