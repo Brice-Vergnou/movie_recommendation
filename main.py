@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+from content_model import get_recommendations_metadata
+from colab_model import train, get_metadata_recommendations
 
 data = pd.read_csv("data/data.csv")
 movies = pd.read_csv("data/movie.csv")
@@ -80,8 +82,27 @@ _,_, btn_col, _,_ = st.columns(5)
 with btn_col:
     btn = st.button('Confirm my choice')
     if btn:
-        st.write(name_to_rating(ratings))
-        # 1. get best recommendations for movies rated with 5
-        # 2. Add results to the data df
+        real_ratings = name_to_rating(ratings)
+        
+        best_ratings = list()
+        for (key, value) in real_ratings.items():
+            if value == 5:
+                best_ratings.append(key)
+                        
+        content_movies = list()
+        for movie in best_ratings:
+            content_movies.append(get_recommendations_metadata(movie, movies, n_best=1))
+        st.write(content_movies)
+        
+        for key in real_ratings.keys():
+            if real_ratings[key] != -1:
+                data_for_df = {"userId":666666}
+                data_for_df["movieId"] = key
+                data_for_df["rating"] = real_ratings[key]
+                data = data.append(pd.DataFrame(data_for_df, index=[data.index[-1] +1]))
+        
+        svd = train(data)
+        colab_movies = get_metadata_recommendations(svd, 666666, data, n_best=10-len(content_movies))
+        st.write(colab_movies)
         # 3. complete with the colab filtering model
         # 4. update the results on page

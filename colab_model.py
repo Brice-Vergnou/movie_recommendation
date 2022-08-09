@@ -10,34 +10,38 @@ from tqdm import tqdm
 from pprint import pprint
 
 
-df_data = pd.read_csv("data/data.csv")
-features = ["userId","movieId","rating"]
 
 
-reader = Reader()
-data = Dataset.load_from_df(df_data[features], reader)
+def train(df_data):
+    features = ["userId","movieId","rating"]
 
-# param_grid = {'n_epochs': [10], 'lr_all': [0.002, 0.005],
-#               'reg_all': [0.2, 0.4, 0.6]}
-# gs = GridSearchCV(SVD, param_grid, measures=['rmse', 'mae'], cv=3)
 
-# gs.fit(data)
+    reader = Reader()
+    data = Dataset.load_from_df(df_data[features], reader)
 
-# # best RMSE score
-# print(gs.best_score['rmse'])
+    # param_grid = {'n_epochs': [10], 'lr_all': [0.002, 0.005],
+    #               'reg_all': [0.2, 0.4, 0.6]}
+    # gs = GridSearchCV(SVD, param_grid, measures=['rmse', 'mae'], cv=3)
 
-# # combination of parameters that gave the best RMSE score
-# print(gs.best_params['rmse'])
+    # gs.fit(data)
 
-svd = SVD(verbose=True,**{'n_epochs': 10, 'lr_all': 0.005, 'reg_all': 0.2}) # Found by GridSearch 
+    # # best RMSE score
+    # print(gs.best_score['rmse'])
 
-trainset = data.build_full_trainset()
-svd.fit(trainset)
+    # # combination of parameters that gave the best RMSE score
+    # print(gs.best_params['rmse'])
+
+    svd = SVD(verbose=True,**{'n_epochs': 5, 'lr_all': 0.005, 'reg_all': 0.2}) # Found by GridSearch 
+
+    trainset = data.build_full_trainset()
+    svd.fit(trainset)
+    
+    return svd
 
 def take_second(elem):
     return elem[1]
 
-def return_n_best(user_id, colab_data, n=5):
+def return_n_best(svd, user_id, colab_data, n=5):
     results = defaultdict(list)
     for id in tqdm(colab_data.movieId):
         _, _, _, est, _ = svd.predict(user_id, id)
@@ -48,10 +52,10 @@ def return_n_best(user_id, colab_data, n=5):
     
     return final
 
-def get_metadata_recommendations(user_id, colab_data, n_best=5):
+def get_metadata_recommendations(svd, user_id, colab_data, n_best=5):
     metadata = {}
     for i in range(n_best):
-        predictions = return_n_best(user_id, colab_data, n_best)[i]
+        predictions = return_n_best(svd, user_id, colab_data, n_best)[i]
         id, _ = predictions
         metadata[id] = {}
 
@@ -79,6 +83,8 @@ def get_metadata_recommendations(user_id, colab_data, n_best=5):
     return metadata
 
 if __name__=="__main__":
-    pprint(get_metadata_recommendations(0, colab_data=df_data))
+    df_data = pd.read_csv("data/data.csv")
+    svd = train(df_data)
+    pprint(get_metadata_recommendations(svd, 0, colab_data=df_data))
     dump("data/model.pkl",algo=svd)
 # %%

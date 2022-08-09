@@ -3,7 +3,7 @@ import pandas as pd
 from pprint import pprint
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-data = pd.read_csv("data/movie.csv")
+
 
 def get_recommendations_metadata(movie_id, movie_data, n_best=5):
     tfidf = TfidfVectorizer(stop_words='english')
@@ -44,5 +44,5 @@ def get_recommendations_metadata(movie_id, movie_data, n_best=5):
     
 
 if __name__=="__main__":
+    data = pd.read_csv("data/movie.csv")
     pprint(get_recommendations_metadata(435,data))
-    pass
