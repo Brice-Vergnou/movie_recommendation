@@ -46,7 +46,7 @@ def get_recommendations(ratings, movie_df, data_df):
     return best_5
 
 def first_5(movie_df):
-    """Return 5 of the 30 most rated movies, in the same format we use in colab_model and content_model
+    """Return 5 of the 40 most rated movies, in the same format we use in colab_model and content_model
 
     Args:
         movie_df (pd.DataFrame): the movie datafram
@@ -54,7 +54,7 @@ def first_5(movie_df):
     Returns:
         dict:  dictionary with 5 keys, corresponding to the recommended movie ID's. For each key, it contains a dictionary with all the features
     """
-    best_5 = movie_df.sort_values(by="reviews_count", ascending=False).iloc[:30   , :]
+    best_5 = movie_df.sort_values(by="reviews_count", ascending=False).iloc[:40   , :]
     best_5 = best_5.sample(n=5)
     best_5["genres"] = np.nan
     best_5["genres"] = best_5["genres"].astype('object')

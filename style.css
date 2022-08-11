@@ -139,3 +139,32 @@ table {
     font-family: "Open Sans", sans-serif;
     line-height: 1.25;
   }
+
+
+  
+  input[type="radio"].demo5 {
+    display: none;
+  }
+  input[type="radio"].demo5 + label {
+    position: relative;
+    padding-left: 1.3rem;
+  }
+  input[type="radio"].demo5 + label::before,
+  input[type="radio"].demo5 + label::after {
+    display: block;
+    position: absolute;
+    box-sizing: border-box;
+    bottom: 0;
+    left: 0;
+    content:'';
+    width: 1rem;
+    height: 1rem; 
+    border-radius: 1rem;
+  }
+  input[type="radio"].demo5 + label::before {
+    border: 1px solid #00B7E8;
+    background-color: #eee;
+  }
+  input[type="radio"].demo5:checked + label::after {
+    background-color: #00B7E8;
+  }
