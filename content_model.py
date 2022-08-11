@@ -5,7 +5,17 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 
-def get_recommendations_metadata(movie_id, movie_data, n_best=5):
+def get_metadata_content(movie_id, movie_data, n_best=5):
+    """Returned the metadata of the n most close movies to the one passed as an argument according to the content features
+
+    Args:
+        movie_id (int): id of the movies we want to find the most closest results
+        movie_data (pd.DataFrame): DF preprocessed like in the eda notebook
+        n_best (int, optional):number of movies we want. Defaults to 5.
+
+    Returns:
+    dict: dictionary with n keys, corresponding to the recommended movie ID's. For each key, it contains a dictionary with all the features
+    """
     tfidf = TfidfVectorizer(stop_words='english')
     movie_data['overview'] = movie_data['overview'].fillna('')
     tfidf_matrix = tfidf.fit_transform(movie_data['overview'])
@@ -45,4 +55,4 @@ def get_recommendations_metadata(movie_id, movie_data, n_best=5):
 
 if __name__=="__main__":
     data = pd.read_csv("data/movie.csv")
-    pprint(get_recommendations_metadata(435,data))
+    pprint(get__metadata_content(435,data))

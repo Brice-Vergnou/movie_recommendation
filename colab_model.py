@@ -13,6 +13,14 @@ from pprint import pprint
 
 
 def train(df_data):
+    """ Returns an SVD model trained on the data passed as an argument
+
+    Args:
+        df_data (pd.DataFrame): a dataset containing at least these features : ["userId","movieId","rating"]. It may have other features, but those will be ignored
+
+    Returns:
+        surprise.SVD model
+    """
     features = ["userId","movieId","rating"]
 
 
@@ -42,6 +50,7 @@ def take_second(elem):
     return elem[1]
 
 def return_n_best(svd, user_id, colab_data, n=5):
+    # Helper function to return the n best movies for one user
     results = defaultdict(list)
     for id in tqdm(colab_data.movieId):
         _, _, _, est, _ = svd.predict(user_id, id)
@@ -52,7 +61,25 @@ def return_n_best(svd, user_id, colab_data, n=5):
     
     return final
 
-def get_metadata_recommendations(svd, user_id, colab_data, n_best=5):
+def get_metadata_colab(svd, user_id, colab_data, n_best=5):
+    """Returned the metadata of the n best movies for a user according to the model
+
+    Args:
+        svd (surprise.SVD): trained SVD model, can be obtained with the train() function
+        user_id (int): id of the user for which we want the recommendations
+        colab_data (pd.DataFrame): a Dataframe with the following features :
+                        - title 
+                        - movie_Year
+                        - mean_rating
+                        - overview
+                        - image_path
+                        - <all the genres> : ["Adventure","Animation","Children","Comedy","Fantasy","Romance","Drama","Action","Crime","Thriller",
+                                            "Horror","Mystery","Sci-Fi","IMAX","War","Musical","Documentary","Western","Film-Noir"]
+        n_best (int, optional): the number of movies that have to be returned. Defaults to 5.
+
+    Returns:
+        dict: dictionary with n keys, corresponding to the recommended movie ID's. For each key, it contains a dictionary with all the features
+    """
     metadata = {}
     for i in range(n_best):
         predictions = return_n_best(svd, user_id, colab_data, n_best)[i]
@@ -85,6 +112,6 @@ def get_metadata_recommendations(svd, user_id, colab_data, n_best=5):
 if __name__=="__main__":
     df_data = pd.read_csv("data/data.csv")
     svd = train(df_data)
-    pprint(get_metadata_recommendations(svd, 0, colab_data=df_data))
+    pprint(get_metadata_colab(svd, 0, colab_data=df_data))
     dump("data/model.pkl",algo=svd)
 # %%
