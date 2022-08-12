@@ -1,5 +1,5 @@
-const url = "http://127.0.0.1:8000"; 
-const cors_url = 'https://gentle-savannah-39522.herokuapp.com/' + url
+const url = "ngrok api server url"; 
+const cors_url = 'heroku url to your proxy' + url
 
 const img_1 = document.getElementById("img1");
 const img_2 = document.getElementById("img2");
