@@ -5,14 +5,10 @@ import numpy as np
 
 def name_to_rating(rats):
         for key, value in rats.items():
-            if value == 'I don\'t know':
-                rats[key] = -1
-            if value == 'Not for me':
-                rats[key] = 1
-            if value == 'Could be good':
-                rats[key] = 3
-            if value == 'Looks appealing':
+            if value == 'yes':
                 rats[key] = 5
+            if value == 'no':
+                rats[key] = 1
         return rats
     
 def get_recommendations(ratings, movie_df, data_df):
@@ -43,10 +39,16 @@ def get_recommendations(ratings, movie_df, data_df):
     for movie in content_movies:
         best_5.update(movie)
     
-    return best_5
+    
+    movies = []
+    for i, key in enumerate(best_5.keys()):
+        movies.append(best_5[key])
+        movies[i]["movieId"] = key
+
+    return movies
 
 def first_5(movie_df):
-    """Return 5 of the 40 most rated movies, in the same format we use in colab_model and content_model
+    """Return 5 of the 30 most rated movies, in the same format we use in colab_model and content_model
 
     Args:
         movie_df (pd.DataFrame): the movie datafram
@@ -54,7 +56,7 @@ def first_5(movie_df):
     Returns:
         dict:  dictionary with 5 keys, corresponding to the recommended movie ID's. For each key, it contains a dictionary with all the features
     """
-    best_5 = movie_df.sort_values(by="reviews_count", ascending=False).iloc[:40   , :]
+    best_5 = movie_df.sort_values(by="reviews_count", ascending=False).iloc[:30   , :]
     best_5 = best_5.sample(n=5)
     best_5["genres"] = np.nan
     best_5["genres"] = best_5["genres"].astype('object')

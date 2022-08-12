@@ -16,12 +16,15 @@ def get_metadata_content(movie_id, movie_data, n_best=5):
     Returns:
     dict: dictionary with n keys, corresponding to the recommended movie ID's. For each key, it contains a dictionary with all the features
     """
-    tfidf = TfidfVectorizer(stop_words='english')
+    tfidf = TfidfVectorizer()
     movie_data['overview'] = movie_data['overview'].fillna('')
-    tfidf_matrix = tfidf.fit_transform(movie_data['overview'])
+    overviews = movie_data['overview']
+    overviews.index = movie_data.movieId
+    tfidf_matrix = tfidf.fit_transform(overviews)
 
     cos_sim_data = pd.DataFrame(cosine_similarity(tfidf_matrix))
-    best_ids =cos_sim_data.loc[movie_id].sort_values(ascending=False).index.tolist()[1:n_best+1]
+    id = movie_data[movie_data.movieId == movie_id].index[0]
+    best_ids =cos_sim_data.loc[id].sort_values(ascending=False).index.tolist()[1:n_best+1]
     movies_recomm =  movie_data.loc[best_ids]
     
     reco = dict(movies_recomm)
@@ -55,4 +58,4 @@ def get_metadata_content(movie_id, movie_data, n_best=5):
 
 if __name__=="__main__":
     data = pd.read_csv("data/movie.csv")
-    pprint(get__metadata_content(435,data))
+    pprint(get_metadata_content(435,data))

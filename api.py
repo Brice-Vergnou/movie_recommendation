@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Union
-from helper_functions import get_recommendations, first_5
+from helper_functions import get_recommendations, first_5, name_to_rating
 import pandas as pd
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
@@ -43,6 +43,9 @@ app.add_middleware(
 @app.post("/")
 async def create_item(item: Item):
     items = item.dict()
+    headers={"Access-Control-Allow-Origin":"*",
+             'Content-Type': 'application/json'}
+    
     rating_names = ["movie_1_rating","movie_2_rating","movie_3_rating","movie_4_rating","movie_5_rating"]
     movie_ids = ["movie_1_id","movie_2_id","movie_3_id","movie_4_id","movie_5_id"]
     ratings = {}
@@ -50,7 +53,7 @@ async def create_item(item: Item):
         movie_id = items[id_name]
         ratings[movie_id] = items[rating]
     predicted_movies = get_recommendations(ratings, movies, data)
-    return predicted_movies
+    return JSONResponse(content=predicted_movies, headers=headers)
 
 @app.get("/")
 async def give_basic_movies():
