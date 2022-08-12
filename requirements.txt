@@ -1,0 +1,10 @@
+fastapi
+pydantic
+typing
+pandas
+uvicorn
+numpy
+sklearn
+tqdm
+surprise
+collections
