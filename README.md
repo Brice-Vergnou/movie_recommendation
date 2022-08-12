@@ -11,5 +11,3 @@ To this
 ![image](https://user-images.githubusercontent.com/86613710/184403701-e916a5ee-df0e-4108-825b-b8fe87b67b50.png)
 
 
-![image](https://user-images.githubusercontent.com/86613710/182355037-300aad3f-afca-43f5-964a-8787c8cd3813.png)
-
