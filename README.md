@@ -9,9 +9,51 @@ Then, I turned this model into an API using FastAPI and rendered it in a website
 ### To this
 ![The recommendations ](https://user-images.githubusercontent.com/86613710/184407901-ad20ebf7-0954-45be-b7a5-fce96a7934f9.png)
 
-If you want to test it, here are the following steps:
+If you want to test it and have it deployed on internet, here are the following steps:
 
-- Req.txt
-- ngrok
-- heroku
-- custom url
+
+- Install the repo :
+```
+git clone https://github.com/Brice-Vergnou/movie_recommendation.git
+cd movie_recommendation
+```
+
+- Get the right libraries :
+```bash
+pip install -r requirements.txt
+```
+
+- Deploy the web page locally thanks to the live server extension from Visual Studio
+- Deploy the API locally :
+```bash
+uvicorn api:app --reload
+```
+
+- Install ngrok
+- Change your config file to :
+```yaml
+authtoken: <your_token>
+tunnels:
+  live:
+    proto: http
+    addr: 5500 # You can change the port to whatever you want, as long as it is the web port
+  api:
+    proto: http
+    addr: 8000 # Same thing with the API port
+```
+- Start all your tunnels:
+```
+ngrok start --all
+```
+
+- Get a CORS proxy :
+```
+# From any folder
+git clone https://github.com/Rob--W/cors-anywhere.git
+cd cors-anywhere/
+npm install
+heroku create
+git push heroku master
+```
+
+- Change the urls used in ```script.js``` in the first lines by your api server url and heroku proxy url
