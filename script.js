@@ -1,4 +1,4 @@
-const url = "https://ee82-2a01-cb19-3dd-9100-74f4-3b73-5fa9-3ac2.eu.ngrok.io";
+const url = "http://127.0.0.1:8000"; 
 const cors_url = 'https://gentle-savannah-39522.herokuapp.com/' + url
 
 const img_1 = document.getElementById("img1");
