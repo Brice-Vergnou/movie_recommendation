@@ -1,4 +1,4 @@
-# Movie recommendation
+# Netfizz - Movie recommendation
 
 About a year ago, I made a Spotify Recommendation project that I wasn't quite proud of, because it wouldn't work like a normal recommendation system. In this project, I used [the movielens dataset](https://files.grouplens.org/datasets/movielens/ml-latest-small.zip) to create a more realistic model. The model is hybrid ( it both uses content-based filtering and collaborative filtering ).
 
